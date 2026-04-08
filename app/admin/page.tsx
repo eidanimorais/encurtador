@@ -41,6 +41,30 @@ async function getDashboardData() {
   };
 }
 
+function formatDate(value: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(value);
+}
+
+function StatCard({ title, value, accent }: { title: string; value: number; accent: "cyan" | "green" | "orange" | "pink" }) {
+  const accentMap = {
+    cyan: "border-cyan-400/35 text-cyan-300 shadow-[0_0_45px_-24px_rgba(34,211,238,0.9)]",
+    green: "border-emerald-400/35 text-emerald-300 shadow-[0_0_45px_-24px_rgba(16,185,129,0.9)]",
+    orange: "border-orange-400/35 text-orange-300 shadow-[0_0_45px_-24px_rgba(251,146,60,0.9)]",
+    pink: "border-pink-400/35 text-pink-300 shadow-[0_0_45px_-24px_rgba(244,114,182,0.9)]",
+  } as const;
+
+  return (
+    <article className={`rounded-2xl border bg-[#0d1826]/70 p-5 backdrop-blur ${accentMap[accent]}`}>
+      <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">{title}</p>
+      <p className="mt-3 text-4xl font-semibold leading-none">{value}</p>
+    </article>
+  );
+}
+
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -48,142 +72,169 @@ export default async function AdminPage() {
   }
 
   const data = await getDashboardData();
+  const historyCount = data.links.reduce((acc, link) => acc + link._count.historyItems, 0);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_5%_5%,#fef3c7_0,#fff7ed_35%,#f8fafc_100%)] p-6 text-zinc-900 lg:p-10">
-      <section className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4">
+    <main className="min-h-screen bg-[#060d16] bg-[radial-gradient(circle_at_8%_0%,rgba(8,145,178,0.22),transparent_34%),radial-gradient(circle_at_90%_15%,rgba(16,185,129,0.12),transparent_34%)] px-4 py-6 text-zinc-100 sm:px-6 lg:px-10">
+      <section className="mx-auto max-w-7xl space-y-5">
+        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-[#0b1320]/80 p-4 backdrop-blur">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Painel do Encurtador</h1>
-            <p className="mt-1 text-sm text-zinc-600">Crie, edite e acompanhe seus links em tempo real.</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-cyan-300/80">Painel Operacional</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-cyan-100">Encurtador de URL</h1>
           </div>
           <div className="flex items-center gap-2">
-            <p className="rounded-xl bg-white px-3 py-2 text-sm text-zinc-600">{session.user.email}</p>
-            <SignOutButton />
+            <p className="rounded-lg border border-zinc-700 bg-[#111b2b] px-3 py-2 text-xs text-zinc-300">{session.user.email}</p>
+            <SignOutButton className="rounded-lg border border-cyan-400/30 bg-[#111b2b] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cyan-200 transition hover:border-cyan-300 hover:text-cyan-100" />
           </div>
         </header>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm text-zinc-600">Links criados</h2>
-            <p className="mt-2 text-3xl font-semibold">{data.links.length}</p>
-          </article>
-          <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm text-zinc-600">Total de cliques</h2>
-            <p className="mt-2 text-3xl font-semibold">{data.totalClicks}</p>
-          </article>
-          <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm text-zinc-600">Cliques (7 dias)</h2>
-            <p className="mt-2 text-3xl font-semibold">{data.clicksLast7Days}</p>
-          </article>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard title="Links criados" value={data.links.length} accent="cyan" />
+          <StatCard title="Cliques totais" value={data.totalClicks} accent="green" />
+          <StatCard title="Últimos 7 dias" value={data.clicksLast7Days} accent="orange" />
+          <StatCard title="Alterações" value={historyCount} accent="pink" />
         </div>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold">Criar novo link</h2>
-          <form action={createLinkAction} className="mt-4 grid gap-3 sm:grid-cols-3">
+        <section className="rounded-2xl border border-cyan-400/20 bg-[#0b1320]/85 p-4 backdrop-blur">
+          <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
+            <input
+              type="text"
+              placeholder="Buscar por slug, URL ou origem..."
+              className="rounded-xl border border-cyan-300/20 bg-[#071120] px-4 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/30 placeholder:text-zinc-500 focus:ring"
+            />
+            <select className="rounded-xl border border-cyan-300/20 bg-[#071120] px-4 py-3 text-sm text-zinc-200 outline-none ring-cyan-300/30 focus:ring">
+              <option>Todos os links</option>
+            </select>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center rounded-xl border border-emerald-300/35 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-400/20"
+              >
+                Ver Home
+              </Link>
+              <Link
+                href="/admin"
+                className="inline-flex items-center justify-center rounded-xl border border-cyan-300/35 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/20"
+              >
+                Atualizar
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-cyan-400/20 bg-[#0b1320]/85 p-5 backdrop-blur">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Novo link</h2>
+          <form action={createLinkAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_300px_180px]">
             <input
               name="destinationUrl"
               type="url"
               required
               placeholder="https://seu-destino.com/pagina"
-              className="rounded-xl border border-zinc-300 px-4 py-3 text-sm outline-none ring-amber-200 focus:ring"
+              className="rounded-xl border border-cyan-300/20 bg-[#071120] px-4 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/30 placeholder:text-zinc-500 focus:ring"
             />
             <input
               name="customSlug"
               type="text"
-              placeholder="slug opcional (se vazio: auto 6 chars)"
-              className="rounded-xl border border-zinc-300 px-4 py-3 text-sm outline-none ring-amber-200 focus:ring"
+              placeholder="slug opcional"
+              className="rounded-xl border border-cyan-300/20 bg-[#071120] px-4 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/30 placeholder:text-zinc-500 focus:ring"
             />
             <button
               type="submit"
-              className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700"
+              className="rounded-xl border border-emerald-300/40 bg-emerald-500/15 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-emerald-100 transition hover:bg-emerald-500/25"
             >
               Criar link
             </button>
           </form>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <article className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Top países</h2>
-            <ul className="mt-4 space-y-2 text-sm text-zinc-700">
-              {data.topCountries.length === 0 ? <li>Nenhum dado ainda.</li> : null}
+        <section className="grid gap-4 xl:grid-cols-2">
+          <article className="rounded-2xl border border-cyan-400/20 bg-[#0b1320]/85 p-5">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Top países</h2>
+            <ul className="mt-3 space-y-2 text-sm">
+              {data.topCountries.length === 0 ? <li className="text-zinc-500">Nenhum dado ainda.</li> : null}
               {data.topCountries.map((item) => (
-                <li key={item.country} className="flex items-center justify-between">
-                  <span>{item.country}</span>
-                  <strong>{item._count._all}</strong>
+                <li key={item.country} className="flex items-center justify-between rounded-lg border border-cyan-400/10 bg-[#081323] px-3 py-2">
+                  <span className="text-zinc-300">{item.country}</span>
+                  <strong className="text-cyan-200">{item._count._all}</strong>
                 </li>
               ))}
             </ul>
           </article>
 
-          <article className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Top navegadores</h2>
-            <ul className="mt-4 space-y-2 text-sm text-zinc-700">
-              {data.topBrowsers.length === 0 ? <li>Nenhum dado ainda.</li> : null}
+          <article className="rounded-2xl border border-cyan-400/20 bg-[#0b1320]/85 p-5">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Top navegadores</h2>
+            <ul className="mt-3 space-y-2 text-sm">
+              {data.topBrowsers.length === 0 ? <li className="text-zinc-500">Nenhum dado ainda.</li> : null}
               {data.topBrowsers.map((item) => (
-                <li key={item.browser} className="flex items-center justify-between">
-                  <span>{item.browser}</span>
-                  <strong>{item._count._all}</strong>
+                <li key={item.browser} className="flex items-center justify-between rounded-lg border border-cyan-400/10 bg-[#081323] px-3 py-2">
+                  <span className="text-zinc-300">{item.browser}</span>
+                  <strong className="text-emerald-200">{item._count._all}</strong>
                 </li>
               ))}
             </ul>
           </article>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold">Seus links</h2>
+        <section className="rounded-2xl border border-cyan-400/20 bg-[#0b1320]/85 p-4 backdrop-blur">
+          <h2 className="px-2 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Tabela de links</h2>
 
-          <div className="mt-4 space-y-4">
-            {data.links.length === 0 ? (
-              <p className="text-sm text-zinc-600">Nenhum link criado ainda.</p>
-            ) : (
-              data.links.map((link) => (
-                <form
-                  key={link.id}
-                  action={updateLinkAction}
-                  className="grid gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-12"
-                >
-                  <input type="hidden" name="linkId" value={link.id} />
+          {data.links.length === 0 ? (
+            <p className="px-2 py-6 text-sm text-zinc-500">Nenhum link criado ainda.</p>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[1040px] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr>
+                    <th className="rounded-l-lg border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Slug</th>
+                    <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Destino</th>
+                    <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Cliques</th>
+                    <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Alterações</th>
+                    <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Criado em</th>
+                    <th className="rounded-r-lg border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Ações</th>
+                  </tr>
+                </thead>
 
-                  <label className="space-y-1 sm:col-span-2">
-                    <span className="text-xs font-medium text-zinc-600">Slug</span>
-                    <input
-                      name="slug"
-                      defaultValue={link.slug}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                    />
-                  </label>
-
-                  <label className="space-y-1 sm:col-span-7">
-                    <span className="text-xs font-medium text-zinc-600">Destino</span>
-                    <input
-                      name="destinationUrl"
-                      defaultValue={link.destinationUrl}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                    />
-                  </label>
-
-                  <div className="sm:col-span-2">
-                    <p className="text-xs text-zinc-500">Cliques</p>
-                    <p className="text-sm font-semibold">{link._count.events}</p>
-                    <p className="mt-1 text-xs text-zinc-500">Alterações: {link._count.historyItems}</p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700 sm:col-span-1"
-                  >
-                    Salvar
-                  </button>
-
-                  <p className="text-xs text-zinc-500 sm:col-span-12">
-                    Curto: <Link href={`/${link.slug}`}>{`/${link.slug}`}</Link>
-                  </p>
-                </form>
-              ))
-            )}
-          </div>
+                <tbody>
+                  {data.links.map((link) => (
+                    <tr key={link.id} className="align-top">
+                      <td colSpan={6} className="pt-3">
+                        <form action={updateLinkAction} className="grid grid-cols-[220px_1fr_90px_110px_130px_120px] gap-2 rounded-xl border border-cyan-400/15 bg-[#071120] p-2">
+                          <input type="hidden" name="linkId" value={link.id} />
+                          <input
+                            name="slug"
+                            defaultValue={link.slug}
+                            className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 text-cyan-100 outline-none ring-cyan-300/30 focus:ring"
+                          />
+                          <input
+                            name="destinationUrl"
+                            defaultValue={link.destinationUrl}
+                            className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 text-zinc-200 outline-none ring-cyan-300/30 focus:ring"
+                          />
+                          <div className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 font-semibold text-cyan-300">{link._count.events}</div>
+                          <div className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 font-semibold text-pink-300">{link._count.historyItems}</div>
+                          <div className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 text-zinc-300">{formatDate(link.createdAt)}</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="submit"
+                              className="rounded-lg border border-emerald-300/35 bg-emerald-500/15 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-100 transition hover:bg-emerald-500/25"
+                            >
+                              Salvar
+                            </button>
+                            <Link
+                              href={`/${link.slug}`}
+                              className="rounded-lg border border-cyan-300/35 bg-cyan-500/15 px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-cyan-100 transition hover:bg-cyan-500/25"
+                            >
+                              Abrir
+                            </Link>
+                          </div>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </section>
     </main>

@@ -2,11 +2,11 @@
 
 import { signOut } from "next-auth/react";
 
-export function SignOutButton() {
+export function SignOutButton({ className }: { className?: string }) {
   return (
     <button
       type="button"
-      className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400"
+      className={`rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 ${className ?? ""}`}
       onClick={() => signOut({ callbackUrl: "/login" })}
     >
       Sair
