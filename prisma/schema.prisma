@@ -1,0 +1,72 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  name         String?
+  role         UserRole      @default(OWNER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  links        Link[]        @relation("LinkCreatedBy")
+  historyItems LinkHistory[] @relation("HistoryChangedBy")
+}
+
+model Link {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  destinationUrl String
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  createdById    String
+  createdBy      User          @relation("LinkCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  events         LinkEvent[]
+  historyItems   LinkHistory[]
+
+  @@index([createdAt])
+}
+
+model LinkEvent {
+  id        String   @id @default(cuid())
+  linkId    String
+  clickedAt DateTime @default(now())
+  ipHash    String?
+  userAgent String?
+  referer   String?
+  country   String?
+  city      String?
+  device    String?
+  browser   String?
+  os        String?
+  link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([clickedAt])
+  @@index([linkId, clickedAt])
+}
+
+model LinkHistory {
+  id                String   @id @default(cuid())
+  linkId            String
+  changedById       String
+  oldDestinationUrl String
+  newDestinationUrl String
+  changedAt         DateTime @default(now())
+  link              Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  changedBy         User     @relation("HistoryChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([linkId, changedAt])
+}
