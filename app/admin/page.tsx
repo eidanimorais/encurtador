@@ -84,7 +84,7 @@ export default async function AdminPage() {
           </div>
           <div className="flex items-center gap-2">
             <p className="rounded-lg border border-zinc-700 bg-[#111b2b] px-3 py-2 text-xs text-zinc-300">{session.user.email}</p>
-            <SignOutButton className="rounded-lg border border-cyan-400/30 bg-[#111b2b] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cyan-200 transition hover:border-cyan-300 hover:text-cyan-100" />
+            <SignOutButton />
           </div>
         </header>
 
