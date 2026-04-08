@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { SignOutButton } from "@/components/sign-out-button";
+import { CopyShortLinkButton } from "@/components/copy-short-link-button";
 import { createLinkAction, updateLinkAction } from "./actions";
 
 async function getDashboardData() {
@@ -72,7 +73,20 @@ export default async function AdminPage() {
   }
 
   const data = await getDashboardData();
-  const historyCount = data.links.reduce((acc, link) => acc + link._count.historyItems, 0);
+  type CountryMetric = { country: string | null; _count: { _all: number } };
+  type BrowserMetric = { browser: string | null; _count: { _all: number } };
+  type LinkRow = {
+    id: string;
+    slug: string;
+    destinationUrl: string;
+    createdAt: Date;
+    _count: { events: number; historyItems: number };
+  };
+
+  const historyCount = data.links.reduce(
+    (acc: number, link: { _count: { historyItems: number } }) => acc + link._count.historyItems,
+    0,
+  );
 
   return (
     <main className="min-h-screen bg-[#060d16] bg-[radial-gradient(circle_at_8%_0%,rgba(8,145,178,0.22),transparent_34%),radial-gradient(circle_at_90%_15%,rgba(16,185,129,0.12),transparent_34%)] px-4 py-6 text-zinc-100 sm:px-6 lg:px-10">
@@ -152,7 +166,7 @@ export default async function AdminPage() {
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Top países</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {data.topCountries.length === 0 ? <li className="text-zinc-500">Nenhum dado ainda.</li> : null}
-              {data.topCountries.map((item) => (
+              {data.topCountries.map((item: CountryMetric) => (
                 <li key={item.country} className="flex items-center justify-between rounded-lg border border-cyan-400/10 bg-[#081323] px-3 py-2">
                   <span className="text-zinc-300">{item.country}</span>
                   <strong className="text-cyan-200">{item._count._all}</strong>
@@ -165,7 +179,7 @@ export default async function AdminPage() {
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">Top navegadores</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {data.topBrowsers.length === 0 ? <li className="text-zinc-500">Nenhum dado ainda.</li> : null}
-              {data.topBrowsers.map((item) => (
+              {data.topBrowsers.map((item: BrowserMetric) => (
                 <li key={item.browser} className="flex items-center justify-between rounded-lg border border-cyan-400/10 bg-[#081323] px-3 py-2">
                   <span className="text-zinc-300">{item.browser}</span>
                   <strong className="text-emerald-200">{item._count._all}</strong>
@@ -190,15 +204,19 @@ export default async function AdminPage() {
                     <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Cliques</th>
                     <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Alterações</th>
                     <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Criado em</th>
+                    <th className="border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Link curto</th>
                     <th className="rounded-r-lg border-b border-cyan-400/20 bg-[#091627] px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] text-zinc-400">Ações</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {data.links.map((link) => (
+                  {data.links.map((link: LinkRow) => (
                     <tr key={link.id} className="align-top">
-                      <td colSpan={6} className="pt-3">
-                        <form action={updateLinkAction} className="grid grid-cols-[220px_1fr_90px_110px_130px_120px] gap-2 rounded-xl border border-cyan-400/15 bg-[#071120] p-2">
+                      <td colSpan={7} className="pt-3">
+                        <form
+                          action={updateLinkAction}
+                          className="grid grid-cols-[190px_1fr_90px_110px_130px_260px_120px] gap-2 rounded-xl border border-cyan-400/15 bg-[#071120] p-2"
+                        >
                           <input type="hidden" name="linkId" value={link.id} />
                           <input
                             name="slug"
@@ -213,6 +231,14 @@ export default async function AdminPage() {
                           <div className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 font-semibold text-cyan-300">{link._count.events}</div>
                           <div className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 font-semibold text-pink-300">{link._count.historyItems}</div>
                           <div className="rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 text-zinc-300">{formatDate(link.createdAt)}</div>
+                          <div className="flex gap-2">
+                            <input
+                              readOnly
+                              value={`/${link.slug}`}
+                              className="w-full rounded-lg border border-cyan-400/20 bg-[#0b1a2e] px-3 py-2 text-cyan-100"
+                            />
+                            <CopyShortLinkButton slug={link.slug} />
+                          </div>
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               type="submit"
