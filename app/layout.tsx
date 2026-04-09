@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Encurtador Privado",
-  description: "Encurtador de URL para uso interno",
+  title: "Elo — Encurtador de URL",
+  description: "Plataforma privada de encurtamento de links.",
 };
 
 export default function RootLayout({
